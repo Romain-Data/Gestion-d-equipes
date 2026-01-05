@@ -1,3 +1,6 @@
 openpyxl
 pandas
 PyQt6
+fastapi
+uvicorn
+python-multipart

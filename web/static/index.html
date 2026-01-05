@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de Tournoi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="w-full p-6 bg-white border-b border-slate-200 shadow-sm flex items-center justify-between">
+        <h1 class="text-2xl font-extrabold tracking-tight">🏆 Générateur de Tournoi</h1>
+        <span class="text-sm text-slate-500">FastAPI & Core Logic</span>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+
+        <!-- Left Panel: Inputs -->
+        <aside class="w-full lg:w-1/3 p-6 bg-white border-r border-slate-200 overflow-y-auto z-10 shadow-lg">
+            <div class="space-y-6">
+
+                <!-- Teams Input -->
+                <div class="rounded-xl p-1 bg-gradient-to-br from-amber-200 to-blue-200 shadow-md">
+                    <div class="bg-white/90 backdrop-blur-sm rounded-lg p-4 h-full">
+                        <label class="block text-sm font-bold mb-2 flex items-center gap-2">
+                            <span>👥</span> Liste des Équipes
+                        </label>
+                        <textarea id="teamsInput"
+                            class="w-full h-40 p-3 bg-slate-50 border-0 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none resize-none text-sm placeholder-slate-400"
+                            placeholder="Equipe 1&#10;Equipe 2&#10;..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Ateliers Input -->
+                <div class="rounded-xl p-1 bg-gradient-to-br from-emerald-200 to-blue-200 shadow-md">
+                    <div class="bg-white/90 backdrop-blur-sm rounded-lg p-4 h-full">
+                        <label class="block text-sm font-bold mb-2 flex items-center gap-2">
+                            <span>🏅</span> Liste des Ateliers
+                        </label>
+                        <textarea id="ateliersInput"
+                            class="w-full h-40 p-3 bg-slate-50 border-0 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none resize-none text-sm placeholder-slate-400"
+                            placeholder="Atelier A&#10;Atelier B&#10;..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <button id="generateBtn" onclick="generatePlanning()"
+                    class="w-full py-3 bg-black text-white font-bold rounded-full hover:bg-slate-800 active:scale-95 transition-all shadow-xl flex justify-center items-center gap-2">
+                    <span>⚡ Générer le Planning</span>
+                </button>
+                <p id="errorMsg" class="text-red-500 text-sm text-center hidden font-medium"></p>
+
+            </div>
+        </aside>
+
+        <!-- Right Panel: Results -->
+        <section class="flex-1 bg-slate-50 p-6 overflow-hidden flex flex-col relative">
+
+            <div
+                class="bg-white rounded-2xl shadow-xl border border-slate-100 flex-1 flex flex-col overflow-hidden relative">
+                <!-- Table Header -->
+                <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                    <h2 class="font-bold text-slate-700">📅 Planning Généré</h2>
+                    <div class="flex items-center gap-3">
+                        <div id="loader" class="hidden animate-spin rounded-full h-5 w-5 border-b-2 border-slate-900">
+                        </div>
+                        <button id="btnExportCSV" onclick="downloadExport('csv')" disabled
+                            class="px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                            ⬇ CSV
+                        </button>
+                        <button id="btnExportExcel" onclick="downloadExport('xlsx')" disabled
+                            class="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 border border-transparent rounded-md hover:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                            ⬇ Excel Équipes
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table Content -->
+                <div class="flex-1 overflow-auto custom-scrollbar p-0">
+                    <table class="w-full text-left border-collapse" id="resultsTable">
+                        <thead
+                            class="bg-slate-50 sticky top-0 z-10 shadow-sm text-xs uppercase text-slate-500 font-semibold tracking-wider">
+                            <tr id="tableHeaderBase">
+                                <!-- Headers will be injected here -->
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-slate-100 text-sm text-slate-600">
+                            <!-- Rows will be injected here -->
+                            <tr>
+                                <td colspan="100%" class="p-10 text-center text-slate-400 italic">
+                                    En attente de génération...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <script>
+        // Pre-fill placeholders for demo
+        document.getElementById('teamsInput').value = Array.from({ length: 12 }, (_, i) => `Equipe ${i + 1}`).join('\n');
+        document.getElementById('ateliersInput').value = Array.from({ length: 10 }, (_, i) => `Atelier ${i + 1}`).join('\n');
+
+        async function generatePlanning() {
+            const teamsText = document.getElementById('teamsInput').value;
+            const ateliersText = document.getElementById('ateliersInput').value;
+            const btn = document.getElementById('generateBtn');
+            const loader = document.getElementById('loader');
+            const errorMsg = document.getElementById('errorMsg');
+            const tableBody = document.getElementById('tableBody');
+
+            // Buttons
+            const btnCsv = document.getElementById('btnExportCSV');
+            const btnXlsx = document.getElementById('btnExportExcel');
+
+            // Reset UI
+            errorMsg.classList.add('hidden');
+            btn.disabled = true;
+            btn.classList.add('opacity-75');
+            // Disable exports until success
+            if (btnCsv) btnCsv.disabled = true;
+            if (btnXlsx) btnXlsx.disabled = true;
+
+            loader.classList.remove('hidden');
+
+            const teams = teamsText.split('\n').filter(line => line.trim() !== '');
+            const ateliers = ateliersText.split('\n').filter(line => line.trim() !== '');
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ teams, ateliers })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Erreur serveur');
+                }
+
+                const data = await response.json();
+                renderTable(data);
+
+                // Enable exports
+                if (btnCsv) btnCsv.disabled = false;
+                if (btnXlsx) btnXlsx.disabled = false;
+
+            } catch (err) {
+                errorMsg.textContent = err.message;
+                errorMsg.classList.remove('hidden');
+                tableBody.innerHTML = `<tr><td colspan="100%" class="p-10 text-center text-red-400">❌ ${err.message}</td></tr>`;
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-75');
+                loader.classList.add('hidden');
+            }
+        }
+
+        async function downloadExport(format) {
+            const teamsText = document.getElementById('teamsInput').value;
+            const ateliersText = document.getElementById('ateliersInput').value;
+            const teams = teamsText.split('\n').filter(line => line.trim() !== '');
+            const ateliers = ateliersText.split('\n').filter(line => line.trim() !== '');
+
+            try {
+                const response = await fetch(`/api/export/${format}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ teams, ateliers })
+                });
+
+                if (!response.ok) throw new Error("Erreur lors du téléchargement");
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = format === 'csv' ? 'planning.csv' : 'planning_equipes.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+            } catch (err) {
+                alert("Erreur de téléchargement : " + err.message);
+            }
+        }
+
+        function renderTable(data) {
+            const tableBody = document.getElementById('tableBody');
+            const tableHeader = document.getElementById('tableHeaderBase');
+
+            if (data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="100%" class="p-4 text-center">Aucune donnée</td></tr>';
+                return;
+            }
+
+            // Generate Headers
+            const columns = Object.keys(data[0]); // e.g., ["Tour", "Atelier 1", "Atelier 2", ...]
+            tableHeader.innerHTML = columns.map(col => `<th class="px-6 py-3 whitespace-nowrap">${col}</th>`).join('');
+
+            // Generate Rows
+            tableBody.innerHTML = data.map((row, idx) => `
+                <tr class="hover:bg-slate-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}">
+                    ${columns.map(col => `<td class="px-6 py-3 whitespace-nowrap border-b border-transparent">${row[col]}</td>`).join('')}
+                </tr>
+            `).join('');
+        }
+    </script>
+</body>
+
+</html>

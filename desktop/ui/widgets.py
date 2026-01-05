@@ -5,7 +5,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
 from typing import Optional
 
-from utils.constants import CARD_RADIUS, FONT_FAMILY
+from desktop.utils.constants import CARD_RADIUS, FONT_FAMILY
 
 
 class CardFrame(QFrame):

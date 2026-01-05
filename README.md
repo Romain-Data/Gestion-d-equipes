@@ -1,13 +1,16 @@
 # 🏆 Générateur de Tournoi - Gestion d'Équipes
 
-Une application de bureau **moderne et intuitive** permettant de générer automatiquement des plannings de tournois sportifs ou associatifs (ex : Olympiades). Elle assure que chaque équipe rencontre un maximum d'adversaires différents tout en tournant sur différents ateliers.
+Une application **hybride (Bureau & Web)** moderne et intuitive permettant de générer automatiquement des plannings de tournois sportifs ou associatifs. Elle assure que chaque équipe rencontre un maximum d'adversaires différents tout en tournant sur différents ateliers.
 
 ## ✨ Fonctionnalités
 
 *   **Génération Automatique** : Algorithme intelligent (basé sur le *Circle Method*) pour des rencontres équilibrées.
-*   **Interface Moderne** : UI épurée, responsive et agréable (PyQt6).
-*   **Export CSV** : Sauvegardez le planning global en un clic.
-*   **Export Excel Avancé** : Générez un fichier Excel multi-onglets avec une feuille par équipe (Détail : Tour, Atelier, Adversaire).
+*   **Deux Interfaces** :
+    *   🖥️ **Desktop** : Application native fluide avec PyQt6.
+    *   🌐 **Web** : Interface légère et accessible via navigateur (FastAPI + Tailwind).
+*   **Exports Complets** :
+    *   **CSV** : Planning global.
+    *   **Excel** : Fichier multi-onglets avec une feuille par équipe (Détail : Tour, Atelier, Adversaire).
 *   **Gestion des cas complexes** : Gère automatiquement les nombres impairs d'équipes (équipes fantômes) et le surplus/manque d'ateliers.
 
 ## 🛠 Installation
@@ -24,44 +27,56 @@ Une application de bureau **moderne et intuitive** permettant de générer autom
 pip install -r requirements.txt
 ```
 
-> **Note** : Les principales dépendances sont `PyQt6` (Interface), `pandas` (Données) et `openpyxl` (Export Excel).
-
 ## 🚀 Utilisation
 
-Lancez l'application avec la commande suivante :
+### 🖥️ Mode Bureau (Desktop)
+Lancez l'application native :
 
 ```bash
-python main.py
+python -m desktop.main
 ```
 
-1.  **Liste des Équipes** : Collez ou tapez la liste de vos équipes dans le panneau de gauche.
-2.  **Liste des Ateliers** : Collez ou tapez la liste de vos ateliers (épreuves).
-3.  Cliquez sur **"Générer le Planning"**.
-4.  Visualisez le résultat dans le tableau central.
-5.  Exportez en **CSV** (Global) ou en **Excel** (Par équipe) selon vos besoins.
+### 🌐 Mode Web
+Lancez le serveur local :
+
+```bash
+uvicorn web.main:app --reload
+```
+Puis ouvrez votre navigateur à l'adresse : [http://127.0.0.1:8000](http://127.0.0.1:8000)
+
+### Fonctionnement général
+1.  **Saisie** : Entrez la liste des équipes et des ateliers.
+2.  **Génération** : Cliquez sur le bouton "Générer".
+3.  **Export** : Téléchargez les résultats en CSV ou Excel.
 
 ## 📂 Architecture du Projet
 
-Le projet a été refactorisé pour suivre les principes de *Clean Code*.
+Le projet respecte une architecture modulaire et *Clean Code*.
 
 ```
 Gestion-d-equipes/
-├── main.py                 # 🟢 Point d'entrée. Contrôleur principal de l'application.
-├── create_tournament.py    # 🧠 Cœur logique. Contient l'algorithme de génération et les conversions.
-├── requirements.txt        # 📦 Liste des dépendances Python.
+├── core/                   # 🧠 Cœur logique (Indépendant de l'interface)
+│   └── algo.py             #    - Algorithme de génération et conversions
 │
-├── ui/                     # 🎨 Composants graphiques (Widgets)
-│   └── widgets.py          #    - CardFrame, InputSection, MainButton
+├── desktop/                # 🖥️ Application Bureau (PyQt6)
+│   ├── main.py             #    - Point d'entrée Desktop
+│   ├── ui/                 #    - Widgets graphiques
+│   └── utils/              #    - Constantes
 │
-└── utils/                  # ⚙️ Utilitaires et Configuration
-    └── constants.py        #    - Couleurs, Polices, Paramètres globaux
+├── web/                    # 🌐 Application Web (FastAPI)
+│   ├── main.py             #    - Backend API
+│   └── static/             #    - Frontend (HTML/JS/Tailwind)
+│       └── index.html
+│
+└── requirements.txt        # 📦 Liste des dépendances
 ```
 
-## 🧩 Dépendances
+## 🧩 Dépendances Majeures
 
-*   **[PyQt6](https://pypi.org/project/PyQt6/)** : Framework GUI pour l'interface utilisateur.
-*   **[pandas](https://pandas.pydata.org/)** : Manipulation puissante des données (DataFrames).
-*   **[openpyxl](https://openpyxl.readthedocs.io/)** : Moteur d'écriture pour les fichiers Excel (.xlsx).
+*   **[PyQt6](https://pypi.org/project/PyQt6/)** : Interface Bureau.
+*   **[FastAPI](https://fastapi.tiangolo.com/)** : Framework API Web.
+*   **[pandas](https://pandas.pydata.org/)** : Manipulation des données.
+*   **[openpyxl](https://openpyxl.readthedocs.io/)** : Export Excel.
 
 ---
 *Projet développé pour optimiser la gestion logistique des tournois.*

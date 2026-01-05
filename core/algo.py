@@ -2,7 +2,7 @@ import pandas as pd
 from typing import List, Dict, Any
 
 
-def generer_planning_algo(noms_ateliers: List[str], noms_equipes: List[str]) -> pd.DataFrame:
+def generer_planning(noms_ateliers: List[str], noms_equipes: List[str]) -> pd.DataFrame:
     """
     Génère un planning de tournoi sous forme de DataFrame.
 
