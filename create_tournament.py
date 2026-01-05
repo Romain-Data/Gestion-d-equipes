@@ -84,9 +84,22 @@ def generer_planning_algo(noms_ateliers, noms_equipes):
             nb_batches = 1  # Cas dégénéré
 
         indices_matchs_assignes = set()
+        
+        # Check if we have an odd number of teams (implying a 'FANTOME' exists).
+        # In this case, each round has 1 match less than theoretical max.
+        # If we also have multiple batches, strict batching will leave holes (e.g. 5 slots for 4 matches).
+        # Fallback to SLIDING WINDOW in this case to rotate usage of all ateliers.
+        has_ghost_hole = (len(equipes) % 2 == 0) and ("FANTOME" in equipes) # Wait, len is even if FANTOME added. 
+        # Actually names_equipes is passed. 'equipes' includes FANTOME if needed.
+        # If len(noms_equipes) is odd -> len(equipes) is even (added FANTOME).
+        # So check original length or presence of FANTOME.
+        
+        force_sliding = False
+        if nb_batches > 1 and "FANTOME" in equipes:
+             force_sliding = True
 
-        # Si on n'a assez d'ateliers que pour 1 seul batch (ou moins), on reste sur le mode classique/glissant
-        if nb_batches <= 1:
+        # Si on n'a assez d'ateliers que pour 1 seul batch (ou moins), on reste sur le mode classique/glissant OR forced
+        if nb_batches <= 1 or force_sliding:
             # Mode SLIDING WINDOW (Restauré pour garantir l'usage de tous les ateliers si surplus)
             # ex: 12 équipes (6 matchs) / 10 ateliers.
             # On veut que les matchs se décalent sur les ateliers 1-10.
