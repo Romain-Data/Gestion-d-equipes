@@ -8,9 +8,9 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 import pandas as pd
 from typing import Optional
 
-from create_tournament import generer_planning_algo, conversions_par_equipe
-from utils.constants import BACKGROUND_COLOR, FONT_FAMILY
-from ui.widgets import CardFrame, InputSection, MainButton
+from core.algo import generer_planning, conversions_par_equipe
+from desktop.utils.constants import BACKGROUND_COLOR, FONT_FAMILY
+from desktop.ui.widgets import CardFrame, InputSection, MainButton
 
 
 class TournamentApp(QMainWindow):
@@ -195,7 +195,7 @@ class TournamentApp(QMainWindow):
 
         # 2. Appel de l'algo
         try:
-            self.df_resultat = generer_planning_algo(ateliers, teams)
+            self.df_resultat = generer_planning(ateliers, teams)
             self.afficher_tableau()
             self.btn_export.setEnabled(True)
             self.btn_export_teams.setEnabled(True)
