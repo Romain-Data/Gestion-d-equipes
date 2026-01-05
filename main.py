@@ -1,97 +1,137 @@
-import pandas as pd
+import sys
+from create_tournament import generer_planning_algo
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
+                             QHBoxLayout, QLabel, QTextEdit, QPushButton, 
+                             QTableWidget, QTableWidgetItem, QFileDialog, QMessageBox, QHeaderView)
+from PyQt6.QtCore import Qt
+
+# --- L'INTERFACE GRAPHIQUE (GUI) ---
+
+# --- L'INTERFACE GRAPHIQUE (GUI) ---
 
 
-def generer_planning(noms_ateliers, noms_equipes):
-    nb_ateliers = len(noms_ateliers)
-    nb_equipes = len(noms_equipes)
+class TournoiApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
 
-    # Vérification de base
-    if nb_equipes > 2 * nb_ateliers:
-        print("Attention : Trop d'équipes pour le nombre d'ateliers (files d'attente nécessaires).")
-        # Pour simplifier, on garde la logique mais certaines équipes devront attendre
+        self.setWindowTitle("Générateur de Tournoi par Équipes")
+        self.resize(1000, 700)
+        
+        # Widget principal
+        main_widget = QWidget()
+        self.setCentralWidget(main_widget)
+        
+        # Layout principal (Vertical)
+        layout = QVBoxLayout()
+        main_widget.setLayout(layout)
+        
+        # --- Zone des entrées (Inputs) ---
+        input_layout = QHBoxLayout()
+        
+        # Zone Équipes
+        team_layout = QVBoxLayout()
+        team_label = QLabel("Liste des Équipes (une par ligne) :")
+        team_label.setStyleSheet("font-weight: bold;")
+        self.team_input = QTextEdit()
+        # Valeurs par défaut pour tester
+        self.team_input.setPlainText("\n".join([f"Equipe {i}" for i in range(1, 21)]))
+        team_layout.addWidget(team_label)
+        team_layout.addWidget(self.team_input)
+        
+        # Zone Ateliers
+        atelier_layout = QVBoxLayout()
+        atelier_label = QLabel("Liste des Ateliers (un par ligne) :")
+        atelier_label.setStyleSheet("font-weight: bold;")
+        self.atelier_input = QTextEdit()
+        # Valeurs par défaut
+        self.atelier_input.setPlainText("\n".join([f"Atelier {i}" for i in range(1, 11)]))
+        atelier_layout.addWidget(atelier_label)
+        atelier_layout.addWidget(self.atelier_input)
+        
+        input_layout.addLayout(team_layout)
+        input_layout.addLayout(atelier_layout)
+        
+        layout.addLayout(input_layout)
+        
+        # --- Bouton Générer ---
+        self.btn_generer = QPushButton("Générer le Planning")
+        self.btn_generer.setStyleSheet("font-size: 14px; padding: 10px; background-color: #4CAF50; color: white; font-weight: bold;")
+        self.btn_generer.clicked.connect(self.lancer_generation)
+        layout.addWidget(self.btn_generer)
+        
+        # --- Tableau de résultats ---
+        self.table = QTableWidget()
+        layout.addWidget(self.table)
+        
+        # --- Bouton Export ---
+        self.btn_export = QPushButton("Exporter en Excel (CSV)")
+        self.btn_export.clicked.connect(self.exporter_csv)
+        self.btn_export.setEnabled(False) # Désactivé tant qu'il n'y a pas de résultat
+        layout.addWidget(self.btn_export)
+        
+        # Variable pour stocker le dataframe
+        self.df_resultat = None
 
-    # Séparation des équipes en deux groupes (Intérieur / Extérieur)
-    # On complète avec des équipes "Fantômes" si nombre impair
-    if nb_equipes % 2 != 0:
-        noms_equipes.append("---")
-        nb_equipes += 1
+    def lancer_generation(self):
+        # 1. Récupération des données
+        raw_teams = self.team_input.toPlainText().strip().split('\n')
+        raw_ateliers = self.atelier_input.toPlainText().strip().split('\n')
+        
+        # Nettoyage des lignes vides
+        teams = [t.strip() for t in raw_teams if t.strip()]
+        ateliers = [a.strip() for a in raw_ateliers if a.strip()]
+        
+        if not teams or not ateliers:
+            QMessageBox.warning(self, "Erreur", "Veuillez entrer au moins une équipe et un atelier.")
+            return
 
-    # On coupe la liste en deux
-    mid = len(noms_equipes) // 2
-    # Si on a plus d'équipes que 2xAteliers, on prend juste les 2xAteliers premiers pour la logique de base
-    # (Ici on suppose le cas idéal : nb_equipes = 2 * nb_ateliers ou proche)
+        # 2. Appel de l'algo
+        try:
+            self.df_resultat = generer_planning_algo(ateliers, teams)
+            self.afficher_tableau()
+            self.btn_export.setEnabled(True)
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur", f"Une erreur est survenue : {str(e)}")
 
-    groupe_A = noms_equipes[:mid]  # Tourne dans un sens
-    groupe_B = noms_equipes[mid:]  # Tourne dans l'autre
+    def afficher_tableau(self):
+        if self.df_resultat is None:
+            return
+            
+        df = self.df_resultat
+        
+        # Configuration du tableau
+        self.table.setRowCount(df.shape[0])
+        self.table.setColumnCount(df.shape[1])
+        self.table.setHorizontalHeaderLabels(df.columns)
+        
+        # Remplissage
+        for i in range(df.shape[0]):
+            for j in range(df.shape[1]):
+                valeur = str(df.iloc[i, j])
+                item = QTableWidgetItem(valeur)
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                self.table.setItem(i, j, item)
+                
+        # Ajustement esthétique
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
-    planning_global = []
+    def exporter_csv(self):
+        if self.df_resultat is None:
+            return
+            
+        filename, _ = QFileDialog.getSaveFileName(self, "Enregistrer le fichier", "", "Fichiers CSV (*.csv)")
+        
+        if filename:
+            try:
+                self.df_resultat.to_csv(filename, index=False, sep=';', encoding='utf-8-sig')
+                QMessageBox.information(self, "Succès", "Fichier enregistré avec succès !")
+            except Exception as e:
+                QMessageBox.critical(self, "Erreur", f"Impossible d'enregistrer le fichier : {str(e)}")
 
-    # On prépare les positions initiales
-    # Pour que ça marche, il faut aligner les listes sur la taille des ateliers
-    # Si on a moins d'équipes que de places, on ajoute des places vides
-    while len(groupe_A) < nb_ateliers:
-        groupe_A.append("Vide")
-        groupe_B.append("Vide")
-
-    # Initialisation des rotations
-    # Groupe A : Position 0 à N
-    # Groupe B : Position 0 à N
-
-    # decalage_supplementaire = 0
-    est_pair = (nb_ateliers % 2 == 0)
-
-    print(f"--- GÉNÉRATION POUR {nb_ateliers} ATELIERS ET {nb_equipes} ÉQUIPES ---\n")
-
-    for tour in range(1, nb_ateliers + 1):
-        tour_data = {"Tour": tour}
-
-        # GESTION DU "SAUT" À LA MI-TEMPS (Pour nombre pair d'ateliers)
-        # Si on est à la moitié + 1, on décale le groupe B d'un cran supplémentaire
-        if est_pair and tour == (nb_ateliers // 2) + 1:
-            groupe_B = [groupe_B[-1]] + groupe_B[:-1]  # Rotation extra
-
-        for i in range(nb_ateliers):
-            atelier_nom = noms_ateliers[i]
-
-            # L'équipe A sur l'atelier i
-            eq_a = groupe_A[i]
-            # L'équipe B sur l'atelier i
-            eq_b = groupe_B[i]
-
-            matchup = f"{eq_a} vs {eq_b}"
-
-            # Nettoyage si "Vide" ou "---"
-            if eq_a in ["Vide", "---"] and eq_b in ["Vide", "---"]:
-                matchup = "Libre"
-            elif eq_a in ["Vide", "---"]:
-                matchup = f"{eq_b} (Seul)"
-            elif eq_b in ["Vide", "---"]:
-                matchup = f"{eq_a} (Seul)"
-
-            tour_data[atelier_nom] = matchup
-
-        planning_global.append(tour_data)
-
-        # ROTATION POUR LE TOUR SUIVANT
-        # Groupe A : Le dernier passe devant (Sens Horaire fictif)
-        groupe_A = [groupe_A[-1]] + groupe_A[:-1]
-
-        # Groupe B : Le premier passe derrière (Sens Anti-horaire fictif)
-        groupe_B = groupe_B[1:] + [groupe_B[0]]
-
-    return pd.DataFrame(planning_global)
-
-
-# --- CONFIGURATION ---
-# Remplacez les noms ici
-mes_ateliers = [f"Atelier {i}" for i in range(1, 11)]  # x1 à x10
-mes_equipes = [f"Equipe {i}" for i in range(1, 11)]   # e1 à e20
-
-# --- LANCEMENT ---
-df_resultat = generer_planning(mes_ateliers, mes_equipes)
-
-# Affichage propre
-# print(df_resultat.to_string(index=False))
-
-# Optionnel : Exporter vers Excel (décommenter la ligne dessous si exécuté en local)
-df_resultat.to_csv("mon_planning_equipes.csv", index=False)
+# --- POINT D'ENTRÉE ---
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = TournoiApp()
+    window.show()
+    sys.exit(app.exec())
