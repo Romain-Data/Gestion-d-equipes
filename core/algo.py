@@ -175,7 +175,11 @@ def generer_planning(noms_ateliers: List[str], noms_equipes: List[str]) -> pd.Da
 
         planning_global.append(tour_data)
 
-    return pd.DataFrame(planning_global)
+    # On force l'ordre des colonnes pour éviter tout désagrément sur certains environnements
+    colonnes_ordonnees = ["Tour"] + noms_ateliers + ["Equipes en pause"]
+    df = pd.DataFrame(planning_global)
+    # Réindexation avec les colonnes dans l'ordre souhaité (et ajout si manquantes, though they shouldn't be)
+    return df.reindex(columns=colonnes_ordonnees)
 
 
 def conversions_par_equipe(df_global: pd.DataFrame) -> Dict[str, pd.DataFrame]:
