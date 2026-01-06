@@ -7,7 +7,7 @@ Une application **hybride (Bureau & Web)** moderne et intuitive permettant de g�
 *   **Génération Automatique** : Algorithme intelligent (basé sur le *Circle Method*) pour des rencontres équilibrées.
 *   **Deux Interfaces** :
     *   🖥️ **Desktop** : Application native fluide avec PyQt6.
-    *   🌐 **Web** : Interface légère et accessible via navigateur (FastAPI + Tailwind).
+    *   🌐 **Web** : Interface légère et accessible via navigateur (Flask + Tailwind).
 *   **Exports Complets** :
     *   **CSV** : Planning global.
     *   **Excel** : Fichier multi-onglets avec une feuille par équipe (Détail : Tour, Atelier, Adversaire).
@@ -40,7 +40,7 @@ python -m desktop.main
 Lancez le serveur local :
 
 ```bash
-uvicorn web.main:app --reload
+python web/main.py
 ```
 Puis ouvrez votre navigateur à l'adresse : [http://127.0.0.1:8000](http://127.0.0.1:8000)
 
@@ -63,7 +63,7 @@ Gestion-d-equipes/
 │   ├── ui/                 #    - Widgets graphiques
 │   └── utils/              #    - Constantes
 │
-├── web/                    # 🌐 Application Web (FastAPI)
+├── web/                    # 🌐 Application Web (Flask)
 │   ├── main.py             #    - Backend API
 │   └── static/             #    - Frontend (HTML/JS/Tailwind)
 │       └── index.html
@@ -74,7 +74,7 @@ Gestion-d-equipes/
 ## 🧩 Dépendances Majeures
 
 *   **[PyQt6](https://pypi.org/project/PyQt6/)** : Interface Bureau.
-*   **[FastAPI](https://fastapi.tiangolo.com/)** : Framework API Web.
+*   **[Flask](https://flask.palletsprojects.com/)** : Micro-framework Web.
 *   **[pandas](https://pandas.pydata.org/)** : Manipulation des données.
 *   **[openpyxl](https://openpyxl.readthedocs.io/)** : Export Excel.
 

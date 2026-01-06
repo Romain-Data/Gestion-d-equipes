@@ -1,117 +1,120 @@
 import sys
 import os
+import io
+import pandas as pd
+from flask import Flask, request, jsonify, send_file
+from core.algo import generer_planning, conversions_par_equipe
 
 # Ajout du dossier racine au PYTHONPATH pour permettre l'import de 'core'
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from fastapi import FastAPI, HTTPException  # noqa: E402
-from fastapi.staticfiles import StaticFiles  # noqa: E402
-from fastapi.responses import FileResponse, StreamingResponse  # noqa: E402
-from pydantic import BaseModel  # noqa: E402
-from typing import List, Dict, Any  # noqa: E402
-import io  # noqa: E402
-import pandas as pd  # noqa: E402
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 
-from core.algo import generer_planning, conversions_par_equipe  # noqa: E402
-
-app = FastAPI(title="Générateur de Tournoi API")
-
-# Montage des fichiers statiques pour le frontend
-app.mount("/static", StaticFiles(directory="web/static"), name="static")
+# Configuration pour éviter le tri alphabétique des clés JSON (Supporte anciennes et nouvelles versions de Flask)
+app.config['JSON_SORT_KEYS'] = False
+app.json.sort_keys = False
 
 
-class PlanningRequest(BaseModel):
-    """ Modèle Pydantic pour la requête de génération. """
-    teams: List[str]
-    ateliers: List[str]
-
-
-@app.get("/")
-async def read_index():
+@app.route("/")
+def read_index():
     """ Sert le fichier index.html à la racine. """
-    return FileResponse("web/static/index.html")
+    return app.send_static_file('index.html')
 
 
-@app.post("/api/generate")
-async def generate_planning(request: PlanningRequest) -> List[Dict[str, Any]]:
+@app.route("/api/generate", methods=['POST'])
+def generate_planning_route():
     """
     Génère le planning et le retourne au format JSON.
-
-    Args:
-        request (PlanningRequest): Listes des équipes et des ateliers.
-
-    Returns:
-        List[Dict[str, Any]]: La liste des enregistrements (lignes du tableau).
+    Attends un JSON avec 'teams' et 'ateliers'.
     """
-    teams = [t.strip() for t in request.teams if t.strip()]
-    ateliers = [a.strip() for a in request.ateliers if a.strip()]
+    data = request.get_json()
+    if not data:
+        return jsonify({"detail": "Données manquantes"}), 400
+
+    teams = [t.strip() for t in data.get('teams', []) if t.strip()]
+    ateliers = [a.strip() for a in data.get('ateliers', []) if a.strip()]
 
     if not teams or not ateliers:
-        raise HTTPException(status_code=400, detail="Les listes d'équipes et d'ateliers ne peuvent pas être vides.")
+        return jsonify({"detail": "Les listes d'équipes et d'ateliers ne peuvent pas être vides."}), 400
 
     try:
         df_resultat = generer_planning(ateliers, teams)
         # Conversion du DataFrame en dictionnaire (records) pour JSON
-        # replace({float('nan'): None}) permet de gérer les valeurs NaN proprement en JSON
         result = df_resultat.fillna("").to_dict(orient="records")
-        return result
+        return jsonify(result)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la génération : {str(e)}")
+        return jsonify({"detail": f"Erreur lors de la génération : {str(e)}"}), 500
 
 
-@app.post("/api/export/csv")
-async def export_csv(request: PlanningRequest):
+@app.route("/api/export/csv", methods=['POST'])
+def export_csv():
     """
     Génère le planning global et le retourne en CSV.
     """
-    teams = [t.strip() for t in request.teams if t.strip()]
-    ateliers = [a.strip() for a in request.ateliers if a.strip()]
+    data = request.get_json()
+    if not data:
+        return jsonify({"detail": "Données manquantes"}), 400
+
+    teams = [t.strip() for t in data.get('teams', []) if t.strip()]
+    ateliers = [a.strip() for a in data.get('ateliers', []) if a.strip()]
 
     if not teams or not ateliers:
-        raise HTTPException(status_code=400, detail="Listes vides.")
+        return jsonify({"detail": "Listes vides."}), 400
 
     try:
         df = generer_planning(ateliers, teams)
-        stream = io.StringIO()
-        df.to_csv(stream, index=False, sep=';', encoding='utf-8-sig')
-        response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv")
-        response.headers["Content-Disposition"] = "attachment; filename=planning_tournoi.csv"
-        return response
+        # Encodage en bytes pour send_file
+        output = io.BytesIO()
+        df.to_csv(output, index=False, sep=';', encoding='utf-8-sig')
+        output.seek(0)
+        
+        return send_file(
+            output,
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name="planning_tournoi.csv"
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return jsonify({"detail": str(e)}), 500
 
 
-@app.post("/api/export/xlsx")
-async def export_excel(request: PlanningRequest):
+@app.route("/api/export/xlsx", methods=['POST'])
+def export_excel():
     """
     Génère le planning par équipe et le retourne en Excel (multi-onglets).
     """
-    teams = [t.strip() for t in request.teams if t.strip()]
-    ateliers = [a.strip() for a in request.ateliers if a.strip()]
+    data = request.get_json()
+    if not data:
+        return jsonify({"detail": "Données manquantes"}), 400
+
+    teams = [t.strip() for t in data.get('teams', []) if t.strip()]
+    ateliers = [a.strip() for a in data.get('ateliers', []) if a.strip()]
 
     if not teams or not ateliers:
-        raise HTTPException(status_code=400, detail="Listes vides.")
+        return jsonify({"detail": "Listes vides."}), 400
 
     try:
         df = generer_planning(ateliers, teams)
         plannings = conversions_par_equipe(df)
-
+        
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             for equipe, df_eq in plannings.items():
                 sheet_name = equipe[:30].replace(":", "").replace("/", "")
                 df_eq.to_excel(writer, sheet_name=sheet_name, index=False)
-
+        
         output.seek(0)
-
-        headers = {
-            'Content-Disposition': 'attachment; filename="plannings_equipes.xlsx"'
-        }
-        return StreamingResponse(output,
-                                 headers=headers,
-                                 media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                                 )
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name="plannings_equipes.xlsx"
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return jsonify({"detail": str(e)}), 500
 
-# Pour lancer : uvicorn web.main:app --reload
+
+if __name__ == '__main__':
+    # Mode développement
+    app.run(debug=True, port=8000)
