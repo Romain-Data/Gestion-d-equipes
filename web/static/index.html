@@ -16,9 +16,12 @@
 
 <body class="bg-slate-50 text-slate-900 h-screen flex flex-col">
 
-    <!-- Header -->
     <header class="w-full p-6 bg-white border-b border-slate-200 shadow-sm flex items-center justify-between">
         <h1 class="text-2xl font-extrabold tracking-tight">🏆 Générateur de Tournoi</h1>
+        <a href="https://github.com/Romain-Data/Gestion-d-equipes" target="_blank"
+            class="hover:opacity-75 transition-opacity">
+            <img src="./assets/github-mark.png" alt="GitHub" class="h-8 w-8">
+        </a>
     </header>
 
     <!-- Main Content -->
@@ -183,7 +186,7 @@
             const ateliers = ateliersText.split('\n').filter(line => line.trim() !== '');
 
             try {
-                const response = await fetch(`/api/export/${format}`, {
+                const response = await fetch(`/tournoi/api/export/${format}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ teams, ateliers })
