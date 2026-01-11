@@ -19,7 +19,6 @@
     <!-- Header -->
     <header class="w-full p-6 bg-white border-b border-slate-200 shadow-sm flex items-center justify-between">
         <h1 class="text-2xl font-extrabold tracking-tight">🏆 Générateur de Tournoi</h1>
-        <span class="text-sm text-slate-500">FastAPI & Core Logic</span>
     </header>
 
     <!-- Main Content -->
@@ -59,6 +58,13 @@
                     <span>⚡ Générer le Planning</span>
                 </button>
                 <p id="errorMsg" class="text-red-500 text-sm text-center hidden font-medium"></p>
+
+                <!-- BMC Button -->
+                <a href="https://www.buymeacoffee.com/RomainC" target="_blank"
+                    class="block w-full py-2 bg-[#FFDD00] text-slate-900 font-bold rounded-full hover:bg-[#ffea00] active:scale-95 transition-all shadow-md flex justify-center items-center gap-2 text-sm">
+                    <span class="text-lg">☕</span>
+                    <span>Buy me a coffee</span>
+                </a>
 
             </div>
         </aside>
@@ -141,7 +147,7 @@
             const ateliers = ateliersText.split('\n').filter(line => line.trim() !== '');
 
             try {
-                const response = await fetch('./api/generate', {
+                const response = await fetch('/tournoi/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ teams, ateliers })
