@@ -14,9 +14,8 @@ from desktop.ui.widgets import CardFrame, InputSection, MainButton
 
 
 class TournamentApp(QMainWindow):
-    """
-    Application principale générant les plannings de tournoi.
-    """
+    "Application principale générant les plannings de tournoi."
+
     def __init__(self):
         super().__init__()
 
@@ -177,13 +176,13 @@ class TournamentApp(QMainWindow):
 
         main_layout.addLayout(right_panel, stretch=2)  # Prendre l'espace restant
 
-        self.df_resultat: Optional[pd.DataFrame] = None
+        self.df_resultat: pd.DataFrame | None = None
 
-    def lancer_generation(self):
+    def lancer_generation(self) -> None:
         """Récupère les entrées, lance l'algorithme et affiche les résultats."""
         # 1. Récupération des données
-        raw_teams = self.teams_card.get_text().strip().split('\n')
-        raw_ateliers = self.ateliers_card.get_text().strip().split('\n')
+        raw_teams = self.teams_card.get_text().strip().split("\n")
+        raw_ateliers = self.ateliers_card.get_text().strip().split("\n")
 
         # Nettoyage des lignes vides
         teams = [t.strip() for t in raw_teams if t.strip()]
